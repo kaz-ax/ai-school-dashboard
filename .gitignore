@@ -1,0 +1,12 @@
+# スプレッドシートはローカルのみ（機密情報を含むため）
+*.xlsx
+*.xls
+*.csv
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/

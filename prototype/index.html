@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI+ 事業ダッシュボード</title>
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="googlebot" content="noindex, nofollow">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0f1117;
+            --bg-secondary: #1a1d2e;
+            --bg-card: #1e2235;
+            --bg-card-hover: #252940;
+            --text-primary: #e8eaf0;
+            --text-secondary: #8b8fa3;
+            --text-muted: #5c6078;
+            --accent-blue: #4f8cff;
+            --accent-green: #34d399;
+            --accent-red: #f87171;
+            --accent-yellow: #fbbf24;
+            --accent-purple: #a78bfa;
+            --accent-orange: #fb923c;
+            --border-color: #2a2e42;
+            --shadow: 0 4px 24px rgba(0,0,0,0.3);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .logo {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .header-date {
+            font-size: 14px;
+            color: var(--text-secondary);
+            background: var(--bg-card);
+            padding: 6px 14px;
+            border-radius: 8px;
+        }
+        .header-right { display: flex; align-items: center; gap: 12px; }
+        .view-toggle {
+            display: flex;
+            background: var(--bg-card);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .view-toggle button {
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .view-toggle button.active {
+            background: var(--accent-blue);
+            color: white;
+        }
+        .view-toggle button:hover:not(.active) {
+            background: var(--bg-card-hover);
+        }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 24px 32px;
+        }
+
+        /* KGI Summary Cards */
+        .kgi-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .kgi-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .kgi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+        .kgi-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .kgi-value {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .kgi-sub {
+            font-size: 13px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .kgi-sub .target { color: var(--text-muted); }
+        .kgi-progress {
+            width: 100%;
+            height: 4px;
+            background: var(--bg-primary);
+            border-radius: 2px;
+            margin-top: 12px;
+            overflow: hidden;
+        }
+        .kgi-progress-bar {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.6s ease;
+        }
+        .positive { color: var(--accent-green); }
+        .negative { color: var(--accent-red); }
+        .warning { color: var(--accent-yellow); }
+
+        /* Two-column layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        /* Card */
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+        }
+        .card-badge {
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+        .badge-green { background: rgba(52,211,153,0.15); color: var(--accent-green); }
+        .badge-red { background: rgba(248,113,113,0.15); color: var(--accent-red); }
+        .badge-yellow { background: rgba(251,191,36,0.15); color: var(--accent-yellow); }
+        .card-body {
+            padding: 20px;
+        }
+
+        /* KPI Table */
+        .kpi-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .kpi-table th, .kpi-table td {
+            padding: 10px 12px;
+            text-align: right;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .kpi-table th {
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .kpi-table td:first-child,
+        .kpi-table th:first-child {
+            text-align: left;
+        }
+        .kpi-table tr:last-child td { border-bottom: none; }
+        .kpi-table .row-label {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        .kpi-table .indent { padding-left: 24px; color: var(--text-secondary); }
+        .kpi-table .highlight-row { background: rgba(79,140,255,0.05); }
+
+        /* Channel breakdown */
+        .channel-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .channel-name {
+            width: 100px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-align: right;
+        }
+        .channel-bar-track {
+            flex: 1;
+            height: 24px;
+            background: var(--bg-primary);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+        .channel-bar-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.6s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+            min-width: fit-content;
+        }
+        .channel-bar-target {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            width: 2px;
+            background: var(--accent-yellow);
+            z-index: 2;
+        }
+        .channel-value {
+            width: 60px;
+            text-align: right;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        /* Action Items */
+        .action-list { list-style: none; }
+        .action-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .action-item:last-child { border-bottom: none; }
+        .action-priority {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-top: 6px;
+            flex-shrink: 0;
+        }
+        .priority-high { background: var(--accent-red); }
+        .priority-medium { background: var(--accent-yellow); }
+        .priority-low { background: var(--accent-green); }
+        .action-content { flex: 1; }
+        .action-title { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+        .action-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 12px;
+        }
+        .action-assignee {
+            background: var(--bg-primary);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        .action-status {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        .status-open { background: rgba(79,140,255,0.15); color: var(--accent-blue); }
+        .status-progress { background: rgba(251,191,36,0.15); color: var(--accent-yellow); }
+        .status-done { background: rgba(52,211,153,0.15); color: var(--accent-green); }
+
+        /* Chart container */
+        .chart-container {
+            position: relative;
+            height: 280px;
+        }
+
+        /* Daily table */
+        .daily-table-wrapper {
+            overflow-x: auto;
+        }
+        .daily-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        .daily-table th {
+            padding: 8px 10px;
+            text-align: right;
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 11px;
+            border-bottom: 2px solid var(--border-color);
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+            background: var(--bg-card);
+        }
+        .daily-table th:first-child { text-align: left; }
+        .daily-table td {
+            padding: 7px 10px;
+            text-align: right;
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+        .daily-table td:first-child { text-align: left; }
+        .daily-table tr.today {
+            background: rgba(79,140,255,0.08);
+        }
+        .daily-table tr.weekend {
+            opacity: 0.5;
+        }
+        .daily-table .cumulative {
+            font-weight: 600;
+        }
+
+        /* Section title */
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: var(--accent-blue);
+            border-radius: 2px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .kgi-grid { grid-template-columns: repeat(3, 1fr); }
+            .main-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 768px) {
+            .kgi-grid { grid-template-columns: repeat(2, 1fr); }
+            .container { padding: 16px; }
+        }
+
+        /* Add action button */
+        .add-action-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: var(--accent-blue);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 13px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .add-action-btn:hover { opacity: 0.85; }
+
+        /* Tooltip */
+        .diff-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .diff-positive { background: rgba(52,211,153,0.1); color: var(--accent-green); }
+        .diff-negative { background: rgba(248,113,113,0.1); color: var(--accent-red); }
+
+        /* PL section */
+        .pl-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color); }
+        .pl-row:last-child { border-bottom: none; }
+        .pl-label { font-size: 13px; color: var(--text-secondary); }
+        .pl-value { font-size: 13px; font-weight: 600; }
+        .pl-row.total { padding-top: 12px; border-top: 2px solid var(--border-color); }
+        .pl-row.total .pl-label, .pl-row.total .pl-value { font-size: 15px; }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            <span class="logo">AI+ 事業ダッシュボード</span>
+            <span class="header-date" id="currentDate">2026年2月9日（月）</span>
+        </div>
+        <div class="header-right">
+            <div class="view-toggle">
+                <button class="active" onclick="switchView('contract')">契約ベース</button>
+                <button onclick="switchView('occurrence')">発生ベース</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- KGI Summary Cards -->
+        <div class="kgi-grid">
+            <div class="kgi-card">
+                <div class="kgi-label">月間売上</div>
+                <div class="kgi-value">¥6,936,800</div>
+                <div class="kgi-sub">
+                    <span class="target">目標: ¥35,015,890</span>
+                    <span class="diff-indicator diff-negative">-¥3,567,967</span>
+                </div>
+                <div class="kgi-progress">
+                    <div class="kgi-progress-bar" style="width: 19.8%; background: var(--accent-red);"></div>
+                </div>
+                <div class="kgi-sub" style="margin-top:6px;">
+                    <span>進捗: 19.8%</span>
+                    <span class="target">（日割期待: 30.0%）</span>
+                </div>
+            </div>
+
+            <div class="kgi-card">
+                <div class="kgi-label">契約数</div>
+                <div class="kgi-value">11.6件</div>
+                <div class="kgi-sub">
+                    <span class="target">目標: 58.6件</span>
+                    <span class="diff-indicator diff-negative">-6.0件</span>
+                </div>
+                <div class="kgi-progress">
+                    <div class="kgi-progress-bar" style="width: 19.8%; background: var(--accent-red);"></div>
+                </div>
+                <div class="kgi-sub" style="margin-top:6px;">
+                    <span>進捗: 19.8%</span>
+                    <span class="target">（期待: 17.6件）</span>
+                </div>
+            </div>
+
+            <div class="kgi-card">
+                <div class="kgi-label">面談予約数</div>
+                <div class="kgi-value">42件</div>
+                <div class="kgi-sub">
+                    <span class="target">目標: 239件</span>
+                    <span class="diff-indicator diff-negative">-29.7件</span>
+                </div>
+                <div class="kgi-progress">
+                    <div class="kgi-progress-bar" style="width: 17.6%; background: var(--accent-red);"></div>
+                </div>
+                <div class="kgi-sub" style="margin-top:6px;">
+                    <span>進捗: 17.6%</span>
+                    <span class="target">（期待: 71.7件）</span>
+                </div>
+            </div>
+
+            <div class="kgi-card">
+                <div class="kgi-label">契約率</div>
+                <div class="kgi-value">32.2%</div>
+                <div class="kgi-sub">
+                    <span class="target">目標: 35.0%</span>
+                    <span class="diff-indicator diff-negative">-2.8pt</span>
+                </div>
+                <div class="kgi-progress">
+                    <div class="kgi-progress-bar" style="width: 92.1%; background: var(--accent-yellow);"></div>
+                </div>
+            </div>
+
+            <div class="kgi-card">
+                <div class="kgi-label">営業利益</div>
+                <div class="kgi-value negative">-¥1,533,791</div>
+                <div class="kgi-sub">
+                    <span class="target">目標: ¥4,652,294</span>
+                    <span class="diff-indicator diff-negative">-¥2,278,831</span>
+                </div>
+                <div class="kgi-progress">
+                    <div class="kgi-progress-bar" style="width: 0%; background: var(--accent-red);"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- Revenue vs Plan Chart -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">売上推移（累積） vs 計画</span>
+                    <span class="card-badge badge-red">計画比 -34.0%</span>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contract Funnel -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">契約ファネル（当月累計）</span>
+                    <span class="card-badge badge-yellow">キャンセル率 14.3%</span>
+                </div>
+                <div class="card-body">
+                    <table class="kpi-table">
+                        <thead>
+                            <tr>
+                                <th>ステージ</th>
+                                <th>目標</th>
+                                <th>実績</th>
+                                <th>差異</th>
+                                <th>達成率</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="highlight-row">
+                                <td class="row-label">面談予約数</td>
+                                <td>71.7</td>
+                                <td>42</td>
+                                <td class="negative">-29.7</td>
+                                <td class="negative">58.6%</td>
+                            </tr>
+                            <tr>
+                                <td class="indent">Meta広告</td>
+                                <td>61.5</td>
+                                <td>36</td>
+                                <td class="negative">-25.5</td>
+                                <td class="negative">58.5%</td>
+                            </tr>
+                            <tr>
+                                <td class="indent">Google広告</td>
+                                <td>6.0</td>
+                                <td>4</td>
+                                <td class="negative">-2.0</td>
+                                <td class="negative">66.7%</td>
+                            </tr>
+                            <tr>
+                                <td class="indent">オーガニック</td>
+                                <td>4.2</td>
+                                <td>2</td>
+                                <td class="negative">-2.2</td>
+                                <td class="negative">47.6%</td>
+                            </tr>
+                            <tr>
+                                <td class="indent">プレス</td>
+                                <td>1.5</td>
+                                <td>2</td>
+                                <td class="positive">+0.5</td>
+                                <td class="positive">133.3%</td>
+                            </tr>
+                            <tr>
+                                <td class="row-label">キャンセル率</td>
+                                <td>30.0%</td>
+                                <td>14.3%</td>
+                                <td class="positive">+15.7pt</td>
+                                <td class="positive">良好</td>
+                            </tr>
+                            <tr>
+                                <td class="row-label">面談実施数</td>
+                                <td>50.2</td>
+                                <td>36</td>
+                                <td class="negative">-14.2</td>
+                                <td class="negative">71.7%</td>
+                            </tr>
+                            <tr>
+                                <td class="row-label">契約率</td>
+                                <td>35.0%</td>
+                                <td>32.2%</td>
+                                <td class="negative">-2.8pt</td>
+                                <td class="warning">92.1%</td>
+                            </tr>
+                            <tr class="highlight-row">
+                                <td class="row-label">契約数</td>
+                                <td>17.6</td>
+                                <td>11.6</td>
+                                <td class="negative">-6.0</td>
+                                <td class="negative">66.0%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Channel Performance -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">チャネル別 面談予約数（進捗）</span>
+                </div>
+                <div class="card-body">
+                    <div style="margin-bottom: 20px;">
+                        <div class="channel-bar">
+                            <span class="channel-name">Meta広告</span>
+                            <div class="channel-bar-track">
+                                <div class="channel-bar-fill" style="width: 17.6%; background: linear-gradient(90deg, var(--accent-blue), #6aa3ff);">36</div>
+                                <div class="channel-bar-target" style="left: 30%;" title="日割目標"></div>
+                            </div>
+                            <span class="channel-value">/ 205</span>
+                        </div>
+                        <div class="channel-bar">
+                            <span class="channel-name">Google広告</span>
+                            <div class="channel-bar-track">
+                                <div class="channel-bar-fill" style="width: 20%; background: linear-gradient(90deg, var(--accent-green), #5ce8b8);">4</div>
+                                <div class="channel-bar-target" style="left: 30%;"></div>
+                            </div>
+                            <span class="channel-value">/ 20</span>
+                        </div>
+                        <div class="channel-bar">
+                            <span class="channel-name">オーガニック</span>
+                            <div class="channel-bar-track">
+                                <div class="channel-bar-fill" style="width: 14.3%; background: linear-gradient(90deg, var(--accent-purple), #c4a8ff);">2</div>
+                                <div class="channel-bar-target" style="left: 30%;"></div>
+                            </div>
+                            <span class="channel-value">/ 14</span>
+                        </div>
+                        <div class="channel-bar">
+                            <span class="channel-name">プレス</span>
+                            <div class="channel-bar-track">
+                                <div class="channel-bar-fill" style="width: 40%; background: linear-gradient(90deg, var(--accent-orange), #fdb262);">2</div>
+                                <div class="channel-bar-target" style="left: 30%;"></div>
+                            </div>
+                            <span class="channel-value">/ 5</span>
+                        </div>
+                    </div>
+                    <div style="font-size:11px; color: var(--text-muted); display:flex; align-items:center; gap:8px;">
+                        <span style="width:12px;height:2px;background:var(--accent-yellow);display:inline-block;"></span>
+                        黄色線 = 日割目標ライン（経過日数/月間日数 = 30%）
+                    </div>
+                </div>
+            </div>
+
+            <!-- P/L Summary -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">月次P/L（2月・契約ベース）</span>
+                </div>
+                <div class="card-body">
+                    <div class="pl-row">
+                        <span class="pl-label">売上</span>
+                        <span class="pl-value">¥6,936,800</span>
+                    </div>
+                    <div class="pl-row">
+                        <span class="pl-label">&nbsp;&nbsp;人件費</span>
+                        <span class="pl-value">- ¥964,286</span>
+                    </div>
+                    <div class="pl-row">
+                        <span class="pl-label">&nbsp;&nbsp;外注費</span>
+                        <span class="pl-value">- ¥559,286</span>
+                    </div>
+                    <div class="pl-row">
+                        <span class="pl-label">粗利</span>
+                        <span class="pl-value">¥5,413,229</span>
+                    </div>
+                    <div class="pl-row">
+                        <span class="pl-label">&nbsp;&nbsp;広告宣伝費</span>
+                        <span class="pl-value">- ¥3,683,359</span>
+                    </div>
+                    <div class="pl-row">
+                        <span class="pl-label">粗利 - 広告費</span>
+                        <span class="pl-value">¥1,729,870</span>
+                    </div>
+                    <div class="pl-row">
+                        <span class="pl-label">&nbsp;&nbsp;その他費用</span>
+                        <span class="pl-value">- ¥767,867</span>
+                    </div>
+                    <div class="pl-row">
+                        <span class="pl-label">&nbsp;&nbsp;支払手数料</span>
+                        <span class="pl-value">- ¥1,145,794</span>
+                    </div>
+                    <div class="pl-row">
+                        <span class="pl-label">&nbsp;&nbsp;全社負担コスト</span>
+                        <span class="pl-value">- ¥1,350,000</span>
+                    </div>
+                    <div class="pl-row total">
+                        <span class="pl-label negative">営業利益</span>
+                        <span class="pl-value negative">- ¥1,533,791</span>
+                    </div>
+                    <div style="margin-top: 12px; padding: 10px; background: rgba(248,113,113,0.08); border-radius: 8px; font-size: 12px; color: var(--text-secondary);">
+                        計画比: -¥2,278,831 （売上不足が主因。広告費は計画比 +¥1,289,136 余裕あり）
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ad Performance -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">広告効率指標</span>
+                </div>
+                <div class="card-body">
+                    <table class="kpi-table">
+                        <thead>
+                            <tr>
+                                <th>指標</th>
+                                <th>目標</th>
+                                <th>Meta実績</th>
+                                <th>Google実績</th>
+                                <th>Blended</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="row-label">広告費</td>
+                                <td>¥15,469,986</td>
+                                <td>¥3,578,332</td>
+                                <td>¥105,027</td>
+                                <td>¥3,683,359</td>
+                            </tr>
+                            <tr>
+                                <td class="row-label">IMP</td>
+                                <td>-</td>
+                                <td>998,836</td>
+                                <td>2,318</td>
+                                <td>1,001,154</td>
+                            </tr>
+                            <tr>
+                                <td class="row-label">CTR</td>
+                                <td>2.0%</td>
+                                <td class="negative">0.99%</td>
+                                <td class="positive">9.1%</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td class="row-label">LINE登録数</td>
+                                <td>-</td>
+                                <td>370</td>
+                                <td>3</td>
+                                <td>373</td>
+                            </tr>
+                            <tr>
+                                <td class="row-label">LINE CVR</td>
+                                <td>5.0%</td>
+                                <td class="negative">3.7%</td>
+                                <td>1.4%</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td class="row-label">CPF</td>
+                                <td>¥6,976</td>
+                                <td class="negative">¥9,671</td>
+                                <td>¥35,009</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td class="row-label">予約CPA</td>
+                                <td>¥70,000</td>
+                                <td class="negative">¥143,133</td>
+                                <td>¥26,257</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td class="row-label">面談CPA</td>
+                                <td>¥100,000</td>
+                                <td class="negative">¥123,391</td>
+                                <td>¥52,513</td>
+                                <td>-</td>
+                            </tr>
+                            <tr class="highlight-row">
+                                <td class="row-label">CPO</td>
+                                <td>¥264,196</td>
+                                <td class="negative">¥357,833</td>
+                                <td>-</td>
+                                <td class="negative">¥317,531</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Action Items -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">アクションアイテム</span>
+                    <button class="add-action-btn" onclick="addAction()">+ 追加</button>
+                </div>
+                <div class="card-body">
+                    <ul class="action-list">
+                        <li class="action-item">
+                            <div class="action-priority priority-high"></div>
+                            <div class="action-content">
+                                <div class="action-title">面談予約数が日割目標比 -41.4%。Meta広告のCTR改善が急務</div>
+                                <div class="action-meta">
+                                    <span class="action-assignee">田原</span>
+                                    <span class="action-status status-progress">対応中</span>
+                                    <span>期限: 2/12</span>
+                                    <span>CR改善数: 0/9.6件（目標）</span>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="action-item">
+                            <div class="action-priority priority-high"></div>
+                            <div class="action-content">
+                                <div class="action-title">CPO目標比 +35.6%（¥357,833 vs ¥264,196）。LP CVR改善を検討</div>
+                                <div class="action-meta">
+                                    <span class="action-assignee">鈴木</span>
+                                    <span class="action-status status-open">未着手</span>
+                                    <span>期限: 2/14</span>
+                                    <span>LP改善数: 0/1.3件（目標）</span>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="action-item">
+                            <div class="action-priority priority-medium"></div>
+                            <div class="action-content">
+                                <div class="action-title">契約率 32.2%（目標35%）。営業ロープレ・面談録画FBの強化</div>
+                                <div class="action-meta">
+                                    <span class="action-assignee">澤本</span>
+                                    <span class="action-status status-progress">対応中</span>
+                                    <span>期限: 2/15</span>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="action-item">
+                            <div class="action-priority priority-medium"></div>
+                            <div class="action-content">
+                                <div class="action-title">Google広告（リスティング）の拡大検討。予約CPA ¥26,257と効率良好</div>
+                                <div class="action-meta">
+                                    <span class="action-assignee">川端</span>
+                                    <span class="action-status status-open">未着手</span>
+                                    <span>期限: 2/13</span>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="action-item">
+                            <div class="action-priority priority-low"></div>
+                            <div class="action-content">
+                                <div class="action-title">キャンセル率は14.3%で目標(30%)を大幅に下回り好調。要因分析して横展開</div>
+                                <div class="action-meta">
+                                    <span class="action-assignee">岡本</span>
+                                    <span class="action-status status-open">未着手</span>
+                                    <span>期限: 2/20</span>
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Daily Detail Table -->
+            <div class="card full-width">
+                <div class="card-header">
+                    <span class="card-title">日次データ（2026年2月）</span>
+                    <span class="card-badge badge-yellow">経過: 9日 / 28日</span>
+                </div>
+                <div class="card-body">
+                    <div class="daily-table-wrapper" style="max-height: 400px; overflow-y: auto;">
+                        <table class="daily-table">
+                            <thead>
+                                <tr>
+                                    <th>日付</th>
+                                    <th>曜日</th>
+                                    <th>予約数</th>
+                                    <th>予約累計</th>
+                                    <th>面談数</th>
+                                    <th>契約数</th>
+                                    <th>売上</th>
+                                    <th>売上累計</th>
+                                    <th>Meta費</th>
+                                    <th>Google費</th>
+                                    <th>広告費累計</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dailyTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Monthly Plan vs Actual -->
+            <div class="card full-width">
+                <div class="card-header">
+                    <span class="card-title">事業計画 vs 実績（月次推移）</span>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 320px;">
+                        <canvas id="monthlyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================
+        // Sample Data (from actual Excel)
+        // ============================
+        const dailyData = [
+            { date: '2/1', dow: '日', reservations: 8, meetings: 10, contracts: 0, revenue: 0, metaCost: 601829, googleCost: 32483 },
+            { date: '2/2', dow: '月', reservations: 9, meetings: 9, contracts: 3, revenue: 1794000, metaCost: 494016, googleCost: 42586 },
+            { date: '2/3', dow: '火', reservations: 5, meetings: 4, contracts: 4, revenue: 2392000, metaCost: 457924, googleCost: 10873 },
+            { date: '2/4', dow: '水', reservations: 6, meetings: 6, contracts: 0, revenue: 0, metaCost: 455368, googleCost: 4832 },
+            { date: '2/5', dow: '木', reservations: 2, meetings: 0, contracts: 2, revenue: 1196000, metaCost: 455377, googleCost: 5478 },
+            { date: '2/6', dow: '金', reservations: 3, meetings: 0, contracts: 1, revenue: 598000, metaCost: 344366, googleCost: 3025 },
+            { date: '2/7', dow: '土', reservations: 2, meetings: 0, contracts: 1, revenue: 598000, metaCost: 353736, googleCost: 3417 },
+            { date: '2/8', dow: '日', reservations: 0, meetings: 0, contracts: 0, revenue: 0, metaCost: 415716, googleCost: 2332 },
+            { date: '2/9', dow: '月', reservations: 7, meetings: 0, contracts: 0, revenue: 358800, metaCost: 0, googleCost: 0, today: true },
+        ];
+
+        // Build daily table
+        const tbody = document.getElementById('dailyTableBody');
+        let cumReservations = 0, cumRevenue = 0, cumAdCost = 0;
+        dailyData.forEach(d => {
+            cumReservations += d.reservations;
+            cumRevenue += d.revenue;
+            cumAdCost += d.metaCost + d.googleCost;
+            const tr = document.createElement('tr');
+            if (d.today) tr.className = 'today';
+            if (d.dow === '土' || d.dow === '日') tr.classList.add('weekend');
+            tr.innerHTML = `
+                <td>${d.date}</td>
+                <td>${d.dow}</td>
+                <td>${d.reservations}</td>
+                <td class="cumulative">${cumReservations}</td>
+                <td>${d.meetings}</td>
+                <td>${d.contracts}</td>
+                <td>${d.revenue > 0 ? '¥' + d.revenue.toLocaleString() : '-'}</td>
+                <td class="cumulative">¥${cumRevenue.toLocaleString()}</td>
+                <td>¥${d.metaCost.toLocaleString()}</td>
+                <td>¥${d.googleCost.toLocaleString()}</td>
+                <td class="cumulative">¥${cumAdCost.toLocaleString()}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        // Remaining days (empty)
+        for (let i = 10; i <= 28; i++) {
+            const dows = ['日','月','火','水','木','金','土'];
+            const dt = new Date(2026, 1, i);
+            const dow = dows[dt.getDay()];
+            const tr = document.createElement('tr');
+            if (dow === '土' || dow === '日') tr.classList.add('weekend');
+            tr.innerHTML = `
+                <td>2/${i}</td>
+                <td>${dow}</td>
+                <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+            `;
+            tbody.appendChild(tr);
+        }
+
+        // ============================
+        // Revenue Chart
+        // ============================
+        const revCtx = document.getElementById('revenueChart').getContext('2d');
+        const days = Array.from({length: 28}, (_, i) => `2/${i+1}`);
+        const dailyTarget = 35015890 / 28;
+        const planCumulative = days.map((_, i) => Math.round(dailyTarget * (i + 1)));
+
+        // Actual cumulative
+        let actualCum = 0;
+        const actualCumulative = [];
+        dailyData.forEach(d => {
+            actualCum += d.revenue;
+            actualCumulative.push(actualCum);
+        });
+
+        new Chart(revCtx, {
+            type: 'line',
+            data: {
+                labels: days,
+                datasets: [
+                    {
+                        label: '計画（累積）',
+                        data: planCumulative,
+                        borderColor: 'rgba(79,140,255,0.4)',
+                        borderDash: [6, 4],
+                        borderWidth: 2,
+                        fill: false,
+                        pointRadius: 0,
+                        tension: 0,
+                    },
+                    {
+                        label: '実績（累積）',
+                        data: [...actualCumulative, ...Array(28 - actualCumulative.length).fill(null)],
+                        borderColor: '#4f8cff',
+                        borderWidth: 2.5,
+                        fill: {
+                            target: 'origin',
+                            above: 'rgba(79,140,255,0.08)',
+                        },
+                        pointRadius: 0,
+                        pointHoverRadius: 5,
+                        tension: 0.1,
+                    },
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: { color: '#8b8fa3', font: { size: 12 }, padding: 20, usePointStyle: true },
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => `${ctx.dataset.label}: ¥${ctx.parsed.y?.toLocaleString() || 0}`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#5c6078', font: { size: 10 }, maxTicksLimit: 14 },
+                        grid: { color: 'rgba(42,46,66,0.5)' },
+                    },
+                    y: {
+                        ticks: {
+                            color: '#5c6078',
+                            font: { size: 10 },
+                            callback: v => `¥${(v/1000000).toFixed(0)}M`
+                        },
+                        grid: { color: 'rgba(42,46,66,0.5)' },
+                    }
+                },
+                interaction: { mode: 'index', intersect: false },
+            }
+        });
+
+        // ============================
+        // Monthly Plan vs Actual Chart
+        // ============================
+        const monthCtx = document.getElementById('monthlyChart').getContext('2d');
+        const months = ['12月', '1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+        const planRevenue = [0, 26910000, 29900000, 32890000, 35880000, 41860000, 47840000, 53820000, 59800000, 68770000, 77740000, 86710000, 101660000];
+        const actualRevenue = [0, null, 6936800, null, null, null, null, null, null, null, null, null, null]; // only Feb has data
+        const planProfit = [-3662500, 7210000, 8282000, 9672420, 9958765, 14758391, 18293495, 22786104, 26763071, 34131055, 40976518, 48165709, 60804652];
+
+        new Chart(monthCtx, {
+            type: 'bar',
+            data: {
+                labels: months,
+                datasets: [
+                    {
+                        type: 'bar',
+                        label: '売上計画',
+                        data: planRevenue,
+                        backgroundColor: 'rgba(79,140,255,0.2)',
+                        borderColor: 'rgba(79,140,255,0.5)',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                    },
+                    {
+                        type: 'bar',
+                        label: '売上実績',
+                        data: actualRevenue,
+                        backgroundColor: 'rgba(79,140,255,0.8)',
+                        borderColor: '#4f8cff',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                    },
+                    {
+                        type: 'line',
+                        label: '営業利益計画',
+                        data: planProfit,
+                        borderColor: 'var(--accent-green)',
+                        borderWidth: 2,
+                        borderDash: [4, 3],
+                        fill: false,
+                        pointRadius: 3,
+                        pointBackgroundColor: 'var(--accent-green)',
+                        tension: 0.3,
+                        yAxisID: 'y1',
+                    },
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: { color: '#8b8fa3', font: { size: 12 }, padding: 20, usePointStyle: true },
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => `${ctx.dataset.label}: ¥${ctx.parsed.y?.toLocaleString() || 0}`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#5c6078', font: { size: 11 } },
+                        grid: { color: 'rgba(42,46,66,0.3)' },
+                    },
+                    y: {
+                        position: 'left',
+                        ticks: {
+                            color: '#5c6078',
+                            font: { size: 10 },
+                            callback: v => `¥${(v/1000000).toFixed(0)}M`
+                        },
+                        grid: { color: 'rgba(42,46,66,0.3)' },
+                        title: { display: true, text: '売上', color: '#5c6078' },
+                    },
+                    y1: {
+                        position: 'right',
+                        ticks: {
+                            color: '#5c6078',
+                            font: { size: 10 },
+                            callback: v => `¥${(v/1000000).toFixed(0)}M`
+                        },
+                        grid: { display: false },
+                        title: { display: true, text: '営業利益', color: '#5c6078' },
+                    }
+                },
+            }
+        });
+
+        // ============================
+        // View Toggle
+        // ============================
+        function switchView(view) {
+            document.querySelectorAll('.view-toggle button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            // In production, this would reload data for the selected view
+            console.log('Switched to:', view);
+        }
+
+        // ============================
+        // Add Action (placeholder)
+        // ============================
+        function addAction() {
+            alert('アクションアイテム追加ダイアログ（プロトタイプ）\n\n実装時は:\n- タイトル\n- 担当者\n- 期限\n- 優先度\nを入力できるフォームを表示します');
+        }
+    </script>
+</body>
+</html>
